@@ -71,6 +71,7 @@ def move_action(path, destination) -> bool:
     except OSError:
         return False
 
+
 #remove() will remove the file
 def remove_action(path) -> bool:
     #basic just remove the file
@@ -80,20 +81,59 @@ def remove_action(path) -> bool:
     except OSError:
         return False
 
+
 #rename() will rename a file from
-def rename_action(path, new_name) -> bool:
-    #it should handle if the file it's trying to renmae is there
+def rename_action(path, destination, format: str) -> bool:
     try:
-        Path(path).rename(new_name)
+        src = Path(path)
+        if not src.exists() or not src.is_file():
+            return False
+
+        # 1. If destination is provided, use it; otherwise stay in the same
+        dest_dir = Path(destination) if destination else src.parent
+        dest_dir.mkdir(parents=True, exist_ok=True)
+
+        today = datetime.now().strftime("%Y-%m-%d")
+        name = src.stem
+        extension = src.suffix.lstrip(".")
+
+        # 2. Parse tokens safely using .replace() to avoid KeyError crashes
+        if format:
+            new_name = (
+                format.replace("{name}", name)
+                .replace("{extension}", extension)
+                .replace("{date}", today)
+            )
+        else:
+            new_name = src.name
+
+        target = dest_dir / new_name
+
+        # If target is the exact same file, no need to rename
+        if src.resolve() == target.resolve():
+            return True
+
+        # 3. Collision handling (_1, _2) matching the rest of your app
+        counter = 1
+        target_stem = target.stem
+        target_suffix = target.suffix
+        while target.exists():
+            target = dest_dir / f"{target_stem}_{counter}{target_suffix}"
+            counter += 1
+
+        # 4. Perform rename
+        src.rename(target)
         return True
+
     except OSError:
         return False
 
+
 # this function is responsible for running the action
-def run_action (path, rules, dry_run = False) -> bool:
+def run_action(path, rules, dry_run = False) -> bool:
     destination = ""
     action = rules.get("action")
-    if action in ["move", "archive"]:
+    if action in ["move", "archive", "rename"] and rules.get("dest"):
         # resolve to the destination file
         dest = Path(rules.get("dest")).expanduser()
         destination = dest if dest.is_absolute() else Path.home() / dest
@@ -101,7 +141,7 @@ def run_action (path, rules, dry_run = False) -> bool:
         #TODO: Make dry run
         pass
     if action == "rename":
-        return rename_action(path, destination)
+        return rename_action(path, destination, rules.get("format", ""))
     elif action == "archive":
         return archive_action(path, destination, rules.get("format", "zip"))
     elif action == "move":
@@ -109,5 +149,4 @@ def run_action (path, rules, dry_run = False) -> bool:
     elif action == "remove":
         return remove_action(path)
     else:
-        return False
-
+         return False
