@@ -15,4 +15,4 @@ Actions:
 	- where to move
 - Remove
 - Rename
-	- Format to rename it for, only supporting `{name}, {date}, {size}, {extension}`
+- Format to rename files using `{name}`, `{extension}`, and `{date}`

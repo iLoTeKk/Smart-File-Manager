@@ -81,31 +81,67 @@ def remove_action(path) -> bool:
         return False
 
 #rename() will rename a file from
-def rename_action(path, new_name) -> bool:
-    #it should handle if the file it's trying to renmae is there
+def rename_action(path, destination, format) -> bool:
     try:
-        Path(path).rename(new_name)
+        src = Path(path)
+
+        if not src.exists() or not src.is_file():
+            return False
+
+        dest_dir = Path(destination)
+        dest_dir.mkdir(parents=True, exist_ok=True)
+
+        today = datetime.now().strftime("%Y-%m-%d")
+        name = src.stem
+        extension = src.suffix.lstrip(".")
+
+        if format:
+            new_name = format.format(
+                name=name,
+                extension=extension,
+                date=today
+            )
+        else:
+            new_name = src.name
+
+        target = dest_dir / new_name
+
+        if target.exists():
+            return False
+
+        src.rename(target)
         return True
-    except OSError:
+
+    except (OSError, ValueError, KeyError, AttributeError):
         return False
 
 # this function is responsible for running the action
 # TODO: Fix rename to make it work with the resulted format, probably make a function for that
-def run_action (path, rules):
-    destination = ""
+def run_action(path, rules):
     action = rules.get("action")
-    if action in ["move", "archive"]:
-        # resolve to the destination file
-        dest = Path(rules.get("dest")).expanduser()
-        destination = dest if dest.is_absolute() else Path.home() / dest
-    if action == "rename":
-        return rename_action(path, destination)
-    elif action == "archive":
-        return archive_action(path, destination, rules.get("format", "zip"))
-    elif action == "move":
-        return move_action(path, destination)
+
+    if action in ["move", "archive", "rename"]:
+        dest = Path(rules.get("dest", Path(path).parent)).expanduser()
+        destination = dest
+
+        if action == "rename":
+            return rename_action(
+                path,
+                destination,
+               rules.get("format", "{name}.{extension}")
+            )
+
+        elif action == "archive":
+            return archive_action(
+                path,
+                destination,
+                rules.get("format", "zip")
+            )
+
+        elif action == "move":
+            return move_action(path, destination)
+
     elif action == "remove":
         return remove_action(path)
-    else:
-        return False
 
+    return False
