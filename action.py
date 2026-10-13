@@ -1,4 +1,6 @@
 import shutil
+import tarfile
+import zipfile
 from pathlib import Path
 from datetime import datetime
 import os
@@ -6,25 +8,47 @@ import os
 
 #archive() will archive directory containing files,and move it to the destination
 # TODO: Make handle if the file avialabe in destination then change the name.
-def archive_action(source, destination, format: str = "zip") -> bool:
-    #get the date and format it as string
-    now = datetime.now()
-    archive_name = now.strftime("%d-%b-%Y")
-
+def archive_action(source, destination,format: str = "zip") -> bool:
     try:
-        #make the archive
-        archive_path = shutil.make_archive(archive_name, format, source)
-        destination_path = Path(destination)
-        #check that the destination file is a directory
-        if not destination_path.exists():
-            destination_path.mkdir()
+        src = Path(source)
+        dest_dir = Path(destination)
+        if not dest_dir.exists():
+            dest_dir.mkdir(parents=True, exist_ok=True)
+
+        # 1. One shared archive name based on the date
+        counter = ""
+        archive_name = f"Archive_{datetime.now().strftime('%d-%b-%Y')}.{format}"
+        archive_path = dest_dir / archive_name
+
+        # 2. Append into the archive
+        if format == "zip":
+            # mode="a" creates the zip if it doesn't exist, or appends if it    does!
+            with zipfile.ZipFile(archive_path, "a", zipfile.ZIP_DEFLATED) as zf:
+                existing_files = zf.namelist()
+                arch_name = src.name
+                counter = 1
+                while arch_name in existing_files:
+                    arch_name = f"{src.stem}_{counter}{src.suffix}"
+                    counter += 1
+                zf.write(src, arcname=arch_name)
+
+        elif format == "tar":
+        # mode="a" appends into existing tar, or mode="w" if new
+            mode = "a" if archive_path.exists() else "w"
+            with tarfile.open(archive_path, mode) as tf:
+                existing_files = tf.getnames()
+                arch_name = src.name
+                counter = 1
+                while arch_name in existing_files:
+                    arch_name = f"{src.stem}_{counter}{src.suffix}"
+                    counter += 1
+                tf.add(src, arcname=arch_name)
         else:
-            if not destination_path.is_dir():
-                destination_path.mkdir()
-        #move it with the new format
-        shutil.move(archive_path, destination / f"{archive_name}.{format}")
+            return False
+        # 3. Delete the original file now that it is inside the archive
+        os.remove(src)
         return True
-    except:
+    except OSError:
         return False
 
 
@@ -33,15 +57,18 @@ def archive_action(source, destination, format: str = "zip") -> bool:
 def move_action(path, destination) -> bool:
     #basic just try to move
     try:
-        destination_path = Path(destination)
-        if not destination_path.exists():
-            destination_path.mkdir()
-        else:
-            if not destination_path.is_dir():
-                destination_path.mkdir()
-        shutil.move(path, destination)
+        src = Path(path)
+        dest_dir = Path(destination)
+        dest_dir.mkdir(parents=True, exist_ok=True)
+
+        target = dest_dir / src.name
+        counter = 1
+        while target.exists():
+            target = dest_dir / f"{src.stem}_{counter}{src.suffix}"
+            counter += 1
+        shutil.move(src, target)
         return True
-    except:
+    except OSError:
         return False
 
 #remove() will remove the file
@@ -50,7 +77,7 @@ def remove_action(path) -> bool:
     try:
         os.remove(path)
         return True
-    except:
+    except OSError:
         return False
 
 #rename() will rename a file from
@@ -59,7 +86,7 @@ def rename_action(path, new_name) -> bool:
     try:
         Path(path).rename(new_name)
         return True
-    except:
+    except OSError:
         return False
 
 # this function is responsible for running the action
@@ -84,7 +111,7 @@ def run_action(path, rules, dry_run=False):
     if action == "rename":
         return rename_action(path, rules.get("format"))
     elif action == "archive":
-        return archive_action(path, destination)
+        return archive_action(path, destination, rules.get("format", "zip"))
     elif action == "move":
         return move_action(path, destination)
     elif action == "remove":

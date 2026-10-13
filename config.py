@@ -3,7 +3,7 @@ import json
 #"action" should equal one of those in the given JSON.
 ACTIONS = ["move", "archive", "rename", "remove"]
 #"when" should equal one of those in the given JSON or multiple.
-FILTER  = ["url", "extension","size_mb", "age_days", "name"]
+FILTER  = ["url", "extension","size_mb", "age_days", "name","contains_text" ]
 #"format" should equal one of those in the give JSON.
 FORMATS = ["zip", "tar"]
 #those are the main key
@@ -45,9 +45,9 @@ def validate_json(json_path, json_error = "") -> tuple[bool,str]:
                             json_error = f'invalid value: {value}, inside of "when"'
                             return False, json_error
                         # if the filter is "size_mb" or "age_days" it should contain less than or more than
-                        if value == "size_mb" or value == "age_days":
+                        if value in ("size_mb", "age_days") and isinstance(subvalues, dict) :
                             if not ("greater_than" in subvalues or "less_than" in subvalues):
-                                json_error = f'"size_mb" and "less_than" shoud either contain "greater_than" or "less_than" keys'
+                                json_error = f'"size_mb" and "age_days" shoud either contain "greater_than" or "less_than" keys'
                                 return False, json_error
                 # validate when key is "action"
                 elif keys == "action":
@@ -77,7 +77,7 @@ def validate_json(json_path, json_error = "") -> tuple[bool,str]:
                     # if the action is 'archive' the format should be one of the accepted formats
                     if row['action'] == 'archive':
                         if values not in FORMATS:
-                            error = f'invalid value: {values}, inside of "format" only supported {FORMATS}'
+                            json_error = f'invalid value: {values}, inside of "format" only supported {FORMATS}'
                             return False, json_error
     #for any exception happned trying to parse the json return False
     except Exception as e:
