@@ -92,7 +92,7 @@ def rename_action(path, destination, format: str) -> bool:
         if not src.exists() or not src.is_file():
             return False
 
-        # If destination is provided, use it; otherwise stay in the same folder
+        # Use destination if provided; otherwise stay in the same folder
         dest_dir = Path(destination) if destination else src.parent
         dest_dir.mkdir(parents=True, exist_ok=True)
 
@@ -100,7 +100,7 @@ def rename_action(path, destination, format: str) -> bool:
         name = src.stem
         extension = src.suffix.lstrip(".")
 
-        # Replace supported tokens; regular names work as-is
+        # Replace supported tokens; plain filenames are accepted as entered
         if format:
             new_name = (
                 format.replace("{name}", name)
@@ -110,9 +110,13 @@ def rename_action(path, destination, format: str) -> bool:
         else:
             new_name = src.name
 
+        # Keep the new name as a filename, not a path
+        if not new_name or Path(new_name).name != new_name:
+            return False
+
         target = dest_dir / new_name
 
-        # Handle name collisions by adding _1, _2, etc.
+        # Handle collisions by adding _1, _2, etc.
         counter = 1
         target_stem = target.stem
         target_suffix = target.suffix
@@ -152,7 +156,7 @@ def run_action(path, rules):
                 rules.get("format", "zip")
             )
 
-        elif action == "move":
+        elif action ==  "move":
             return move_action(path, destination)
 
     elif action == "remove":
