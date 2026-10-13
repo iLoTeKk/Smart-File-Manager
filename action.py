@@ -79,7 +79,7 @@ def remove_action(path) -> bool:
         return True
     except OSError:
         return False
-
+ 
 #rename() will rename a file inside its current directory
 def rename_action(path, new_name) -> bool:
     try:
