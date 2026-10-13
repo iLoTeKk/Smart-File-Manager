@@ -80,11 +80,26 @@ def remove_action(path) -> bool:
     except OSError:
         return False
 
-#rename() will rename a file from
+#rename() will rename a file inside its current directory
 def rename_action(path, new_name) -> bool:
-    #it should handle if the file it's trying to renmae is there
     try:
-        Path(path).rename(new_name)
+        src = Path(path)
+        new_name = Path(new_name).name  # name only, never moves the file elsewhere
+        if not new_name:
+            return False
+
+        target = src.with_name(new_name)
+        if target == src:
+            return True  # nothing to change
+
+        # if the name is already taken, add a counter (same logic as move_action)
+        new_path = Path(new_name)
+        counter = 1
+        while target.exists():
+            target = src.with_name(f"{new_path.stem}_{counter}{new_path.suffix}")
+            counter += 1
+
+        src.rename(target)
         return True
     except OSError:
         return False
@@ -101,7 +116,7 @@ def run_action (path, rules, dry_run = False) -> bool:
         #TODO: Make dry run
         pass
     if action == "rename":
-        return rename_action(path, destination)
+        return rename_action(path, rules.get("new_name", ""))
     elif action == "archive":
         return archive_action(path, destination, rules.get("format", "zip"))
     elif action == "move":
@@ -109,5 +124,4 @@ def run_action (path, rules, dry_run = False) -> bool:
     elif action == "remove":
         return remove_action(path)
     else:
-        return False
-
+     return False
