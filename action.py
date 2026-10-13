@@ -80,12 +80,23 @@ def remove_action(path) -> bool:
     except OSError:
         return False
 
-#rename() will rename a file from
+# rename() will rename a file
 def rename_action(path, new_name) -> bool:
-    #it should handle if the file it's trying to renmae is there
+    # check if the source file exists and handle name conflicts
     try:
-        Path(path).rename(new_name)
+        src = Path(path)
+
+        if not src.exists() or not src.is_file():
+            return False
+
+        target = src.with_name(new_name)
+
+        if target.exists():
+            return False
+
+        src.rename(target)
         return True
+
     except OSError:
         return False
 
