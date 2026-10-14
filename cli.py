@@ -69,7 +69,8 @@ def main():
         rule = matchers.first_matching_rule(file, json_data["rules"])
         if rule:
             action.run_action(file, rule, dry_run)
-
+    if dry_run:
+        print(f"[INFO] Dry Run Mode nothing were modified it's just a preview")
 
 
 if __name__ == "__main__":
