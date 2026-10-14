@@ -126,7 +126,7 @@ def rename_action(path, format: str) -> bool:
         return False
 
 
-# this function is responsible for running the action<<<<<<< scan-function
+# this function is responsible for running the action
 # TODO: Fix rename to make it work with the resulted format, probably make a function for that
 def run_action(path, rules, dry_run = False) -> bool:
     destination = ""
