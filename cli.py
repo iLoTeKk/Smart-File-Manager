@@ -57,9 +57,14 @@ def main():
     if not ok:
         sys.exit(json_error)
 
+
     with open(config_file, "r", encoding="utf-8") as file:
         json_data = json.load(file)
+    if dry_run:
+        print(f"[INFO] Schema Validated: {len(json_data['rules'])}")
     all_files = scan(base_dir, recursive, skip_dir=None)
+    if dry_run:
+        print(f"[INFO] Scanned {base_dir}: {len(all_files)} files")
     for file in all_files:
         rule = matchers.first_matching_rule(file, json_data["rules"])
         if rule:
