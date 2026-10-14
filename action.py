@@ -129,7 +129,8 @@ def rename_action(path, destination, format: str) -> bool:
         return False
 
 
-# this function is responsible for running the action
+# this function is responsible for running the action<<<<<<< scan-function
+# TODO: Fix rename to make it work with the resulted format, probably make a function for that
 def run_action(path, rules, dry_run = False) -> bool:
     destination = ""
     action = rules.get("action")
@@ -138,8 +139,14 @@ def run_action(path, rules, dry_run = False) -> bool:
         dest = Path(rules.get("dest")).expanduser()
         destination = dest if dest.is_absolute() else Path.home() / dest
     if dry_run:
-        #TODO: Make dry run
-        pass
+        if action in ["move", "archive"]:
+            print(f"[DRY-RUN] Would {action.upper()}: '{path}' -> '{destination}'")
+        elif action == "remove":
+            print(f"[DRY-RUN] Would REMOVE: '{path}'")
+        elif action == "rename":
+            print(f"[DRY-RUN] Would RENAME: '{path}' (format: '{rules.get('format')}')")
+        return True
+
     if action == "rename":
         return rename_action(path, destination, rules.get("format", ""))
     elif action == "archive":
@@ -149,4 +156,6 @@ def run_action(path, rules, dry_run = False) -> bool:
     elif action == "remove":
         return remove_action(path)
     else:
-         return False
+        return False
+
+
